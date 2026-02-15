@@ -31,3 +31,8 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.15.1",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "performance: performance-sensitive tests",
+]
