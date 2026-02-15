@@ -25,3 +25,15 @@ def test_frame_saver_unique_names(tmp_path: Path) -> None:
     second = saver.save_png(image, 1)
 
     assert first != second
+
+
+def test_frame_saver_uses_explicit_target(tmp_path: Path) -> None:
+    outdir = tmp_path / "exports"
+    saver = FrameSaver(outdir)
+    image = Image.new("RGB", (8, 8), "blue")
+    target = outdir / "custom-name.png"
+
+    output = saver.save_png(image, 99, target=target)
+
+    assert output == target
+    assert output.exists()
