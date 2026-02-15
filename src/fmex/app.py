@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -24,19 +25,28 @@ class FMEXApp(App[None]):
         super().__init__()
         self.session = session
         self.preview = SixelImage(id="preview")
-        self.preview.styles.width = 80
-        self.preview.styles.height = 18
         self.status = StatusLine("Initializing", id="status")
 
     def compose(self) -> ComposeResult:
         yield Vertical(self.preview, *build_footer_widgets(), self.status)
 
+    def _fit_preview_to_terminal(self) -> None:
+        width = max(1, self.size.width)
+        height = max(4, self.size.height - 2)
+        self.preview.styles.width = width
+        self.preview.styles.height = height
+
     def on_mount(self) -> None:
+        self._fit_preview_to_terminal()
         snap = self.session.get_current_frame()
         self.preview.image = snap.image
         self._set_status(
             f"Frame {snap.frame_index + 1}/{self.session.session.total_frames}"
         )
+
+    def on_resize(self, event: events.Resize) -> None:
+        del event
+        self._fit_preview_to_terminal()
 
     def _set_status(self, text: str) -> None:
         self.status.set_status(text)
