@@ -44,6 +44,10 @@ class PyAVVideoDecoder:
         return cache_start + len(frames)
 
     @property
+    def has_known_frame_count(self) -> bool:
+        return bool(getattr(self, "_frame_count", 0))
+
+    @property
     def fps(self) -> float | None:
         return self._fps
 

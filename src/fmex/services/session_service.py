@@ -71,23 +71,19 @@ class FrameSession:
         boundary_error: str,
     ) -> tuple[FrameSnapshot, str | None]:
         message = None
-        if self.session.total_frames > 0:
-            if target_index < 0:
-                target_index = 0
-                message = low_message
-            elif target_index >= self.session.total_frames:
-                target_index = self.session.total_frames - 1
-                message = high_message
+        if target_index < 0:
+            target_index = 0
+            message = low_message
+        elif self.session.total_frames > 0 and target_index >= self.session.total_frames:
+            target_index = self.session.total_frames - 1
+            message = high_message
         try:
             snap = self._snapshot(target_index)
         except FrameIndexError as exc:
-            if self.decoder.frame_count:
+            if self.decoder.has_known_frame_count:
                 self.session.total_frames = self.decoder.frame_count
             if self.session.total_frames > 0:
-                if target_index < 0:
-                    target_index = 0
-                    message = low_message
-                elif target_index >= self.session.total_frames:
+                if target_index >= self.session.total_frames:
                     target_index = self.session.total_frames - 1
                     message = high_message
                 snap = self._snapshot(target_index)
