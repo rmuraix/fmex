@@ -553,6 +553,7 @@ def test_get_frame_seeks_backward_and_falls_back_to_reset() -> None:
 
 
 def test_infer_frame_count_with_invalid_stream_duration() -> None:
+    """Test that negative stream duration results in frame count of 0."""
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder._stream = Mock()
     decoder._stream.frames = 0
@@ -568,6 +569,7 @@ def test_infer_frame_count_with_invalid_stream_duration() -> None:
 
 
 def test_infer_frame_count_with_invalid_container_duration() -> None:
+    """Test that negative container duration results in frame count of 0."""
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder._stream = Mock()
     decoder._stream.frames = 0
