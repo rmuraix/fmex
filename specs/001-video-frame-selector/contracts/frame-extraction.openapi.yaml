@@ -1,0 +1,207 @@
+openapi: 3.0.3
+info:
+  title: FMEX Frame Extraction Contract
+  version: 1.0.0
+  description: |
+    Internal contract model for CLI/TUI frame navigation and export operations.
+servers:
+  - url: http://local.fmex
+paths:
+  /sessions:
+    post:
+      summary: Open video session
+      operationId: openSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [videoPath]
+              properties:
+                videoPath:
+                  type: string
+                outdir:
+                  type: string
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoSession'
+        '400':
+          description: Invalid input path or unreadable/corrupt media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /sessions/{sessionId}/frame:
+    get:
+      summary: Get selected frame preview metadata
+      operationId: getCurrentFrame
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Current frame
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrameSnapshot'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /sessions/{sessionId}/frame/next:
+    post:
+      summary: Advance one frame
+      operationId: nextFrame
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Frame advanced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrameSnapshot'
+        '409':
+          description: Already at last frame
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /sessions/{sessionId}/frame/previous:
+    post:
+      summary: Move one frame backward
+      operationId: previousFrame
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Frame moved backward
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrameSnapshot'
+        '409':
+          description: Already at first frame
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /sessions/{sessionId}/saves:
+    post:
+      summary: Save selected frame as PNG
+      operationId: saveFrame
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '201':
+          description: Frame saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveOperation'
+        '422':
+          description: Save failed due to IO/permissions/disk
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /sessions/{sessionId}:
+    delete:
+      summary: Close session
+      operationId: closeSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '204':
+          description: Session closed
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    VideoSession:
+      type: object
+      required: [sessionId, sourcePath, totalFrames, currentFrameIndex, outdir, status]
+      properties:
+        sessionId:
+          type: string
+        sourcePath:
+          type: string
+        totalFrames:
+          type: integer
+          minimum: 1
+        currentFrameIndex:
+          type: integer
+          minimum: 0
+        outdir:
+          type: string
+        status:
+          type: string
+          enum: [initializing, ready, errored, closed]
+        errorMessage:
+          type: string
+          nullable: true
+    FrameSnapshot:
+      type: object
+      required: [sessionId, frameIndex, timestampMs, width, height]
+      properties:
+        sessionId:
+          type: string
+        frameIndex:
+          type: integer
+          minimum: 0
+        timestampMs:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+    SaveOperation:
+      type: object
+      required: [saveId, sessionId, frameIndex, outputPath, status, createdAt]
+      properties:
+        saveId:
+          type: string
+        sessionId:
+          type: string
+        frameIndex:
+          type: integer
+          minimum: 0
+        outputPath:
+          type: string
+          pattern: '.*\\.png$'
+        status:
+          type: string
+          enum: [success, failure]
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

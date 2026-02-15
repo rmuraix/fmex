@@ -1,0 +1,54 @@
+name: Check
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/check.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/check.yaml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    name: check (python ${{ matrix.python-version }})
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages
+        run: uv sync --python ${{ matrix.python-version }}
+      - name: Run Ruff
+        run: uv run --python ${{ matrix.python-version }} ruff check --output-format=github .
+      - name: Run Ruff format
+        run: uv run --python ${{ matrix.python-version }} ruff format --check .
+      - name: Test with pytest
+        run: uv run --python ${{ matrix.python-version }} pytest
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: rmuraix/fmex
+          flags: py${{ matrix.python-version }}
