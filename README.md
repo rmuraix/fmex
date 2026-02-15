@@ -18,10 +18,10 @@ Terminal-based frame extractor for video files.
 
 ```bash
 # Save to current directory
-fmex /path/to/video.mp4
+uvx fmex /path/to/video.mp4
 
 # Save to custom output directory (auto-created if missing)
-fmex /path/to/video.mp4 --outdir ./exports
+uvx fmex /path/to/video.mp4 --outdir ./exports
 ```
 
 Keyboard controls:
