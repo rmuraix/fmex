@@ -62,67 +62,62 @@ class FrameSession:
     def get_current_frame(self) -> FrameSnapshot:
         return self._snapshot(self.session.current_frame_index)
 
-    def step_frames(self, delta: int) -> tuple[FrameSnapshot, str | None]:
-        if delta == 0:
-            return self.get_current_frame(), None
-        target_index = self.session.current_frame_index + delta
+    def _navigate_to_index(
+        self,
+        target_index: int,
+        *,
+        low_message: str,
+        high_message: str,
+        boundary_error: str,
+    ) -> tuple[FrameSnapshot, str | None]:
         message = None
         if self.session.total_frames > 0:
             if target_index < 0:
                 target_index = 0
-                message = "Already at first frame"
+                message = low_message
             elif target_index >= self.session.total_frames:
                 target_index = self.session.total_frames - 1
-                message = "Already at last frame"
+                message = high_message
         try:
             snap = self._snapshot(target_index)
         except FrameIndexError as exc:
             if self.decoder.frame_count:
                 self.session.total_frames = self.decoder.frame_count
             if self.session.total_frames > 0:
-                if target_index >= self.session.total_frames:
-                    target_index = self.session.total_frames - 1
-                    message = "Already at last frame"
-                elif target_index < 0:
+                if target_index < 0:
                     target_index = 0
-                    message = "Already at first frame"
+                    message = low_message
+                elif target_index >= self.session.total_frames:
+                    target_index = self.session.total_frames - 1
+                    message = high_message
                 snap = self._snapshot(target_index)
             else:
-                raise FrameBoundaryError("Already at last frame") from exc
+                raise FrameBoundaryError(boundary_error) from exc
         self.session.current_frame_index = target_index
         self._prefetch_neighbors()
         return snap, message
+
+    def step_frames(self, delta: int) -> tuple[FrameSnapshot, str | None]:
+        if delta == 0:
+            return self.get_current_frame(), None
+        target_index = self.session.current_frame_index + delta
+        return self._navigate_to_index(
+            target_index,
+            low_message="Already at first frame",
+            high_message="Already at last frame",
+            boundary_error="Already at last frame",
+        )
 
     def jump_to_time(self, seconds: float) -> tuple[FrameSnapshot, str | None]:
         if seconds < 0:
             raise ValueError("Seconds must be non-negative")
         target_index = self.decoder.frame_index_for_seconds(seconds)
-        message = None
-        if self.session.total_frames > 0:
-            if target_index < 0:
-                target_index = 0
-                message = "Time out of range; moved to first frame"
-            elif target_index >= self.session.total_frames:
-                target_index = self.session.total_frames - 1
-                message = "Time out of range; moved to last frame"
-        try:
-            snap = self._snapshot(target_index)
-        except FrameIndexError as exc:
-            if self.decoder.frame_count:
-                self.session.total_frames = self.decoder.frame_count
-            if self.session.total_frames > 0:
-                if target_index >= self.session.total_frames:
-                    target_index = self.session.total_frames - 1
-                    message = "Time out of range; moved to last frame"
-                elif target_index < 0:
-                    target_index = 0
-                    message = "Time out of range; moved to first frame"
-                snap = self._snapshot(target_index)
-            else:
-                raise FrameBoundaryError("Unable to jump to time") from exc
-        self.session.current_frame_index = target_index
-        self._prefetch_neighbors()
-        return snap, message
+        return self._navigate_to_index(
+            target_index,
+            low_message="Time out of range; moved to first frame",
+            high_message="Time out of range; moved to last frame",
+            boundary_error="Unable to jump to time",
+        )
 
     def next_frame(self) -> FrameSnapshot:
         target_index = self.session.current_frame_index + 1
