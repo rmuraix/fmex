@@ -1,10 +1,22 @@
 [project]
 name = "fmex"
 version = "0.1.0"
-description = "Add your description here"
+description = "Terminal-based frame extractor for video files."
 readme = "README.md"
+license-files = ["LICENSE"]
 authors = [
     { name = "Ryota Murai", email = "opensource@rmurai.com" }
+]
+keywords = ["frame extraction", "video processing", "terminal application"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
 ]
 requires-python = ">=3.11"
 dependencies = [
@@ -15,6 +27,14 @@ dependencies = [
     "textual-image>=0.8.5",
     "typer>=0.23.1",
 ]
+
+
+[project.urls]
+Homepage = "https://github.com/rmuraix/fmex"
+Documentation = "https://github.com/rmuraix/fmex#readme"
+Repository = "https://github.com/rmuraix/fmex.git"
+Issues = "https://github.com/rmuraix/fmex/issues"
+Changelog = "https://github.com/rmuraix/fmex/releases"
 
 [project.scripts]
 fmex = "fmex.cli:main"
