@@ -20,6 +20,9 @@ Keyboard controls:
 
 - `Left` / `h`: Previous frame
 - `Right` / `l`: Next frame
+- `Shift` + `Left`/`Right`: Jump 10 frames
+- `Ctrl` + `Left`/`Right`: Jump 100 frames
+- `t`: Open time jump input, type seconds, press `Enter`
 - `s`: Save selected frame as PNG
 - `q`: Quit
 
