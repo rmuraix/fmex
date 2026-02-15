@@ -50,5 +50,5 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: rmuraix/HistoSlice
+          slug: rmuraix/fmex
           flags: py${{ matrix.python-version }}
