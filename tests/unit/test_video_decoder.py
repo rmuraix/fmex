@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 from PIL import Image
@@ -500,7 +500,10 @@ def test_close_does_nothing_when_container_is_none() -> None:
 def test_frame_count_property_uses_fallback_when_frame_count_is_zero() -> None:
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder._frame_count = 0
-    decoder._frames = [Image.new("RGB", (2, 2), "red"), Image.new("RGB", (2, 2), "green")]
+    decoder._frames = [
+        Image.new("RGB", (2, 2), "red"),
+        Image.new("RGB", (2, 2), "green"),
+    ]
     decoder._cache_start = 10
 
     assert decoder.frame_count == 12
