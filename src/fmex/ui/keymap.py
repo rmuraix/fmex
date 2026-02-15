@@ -17,4 +17,7 @@ def command_for_key(key: str) -> CommandType | None:
 
 
 def controls_text() -> str:
-    return "Left/h: prev | Right/l: next | s: save PNG | q: quit"
+    return (
+        "Left/h: prev | Right/l: next | Shift: ±10 | Ctrl: ±100 | "
+        "j: jump | s: save PNG | q: quit"
+    )

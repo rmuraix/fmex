@@ -1,0 +1,9 @@
+openapi: 3.0.3
+info:
+  title: fmex Navigation Contracts
+  version: 1.0.0
+  description: |
+    fmex is a local terminal application with no external HTTP API.
+    This OpenAPI document is intentionally empty to make the absence
+    of network endpoints explicit for this feature.
+paths: {}

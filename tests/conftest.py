@@ -79,6 +79,32 @@ class FakeSession:
         self.session.current_frame_index -= 1
         return self._snapshot()
 
+    def step_frames(self, delta: int) -> tuple[FrameSnapshot, str | None]:
+        target = self.session.current_frame_index + delta
+        message = None
+        if target < 0:
+            target = 0
+            message = "Already at first frame"
+        elif target >= len(self.frames):
+            target = len(self.frames) - 1
+            message = "Already at last frame"
+        self.session.current_frame_index = target
+        return self._snapshot(), message
+
+    def jump_to_time(self, seconds: float) -> tuple[FrameSnapshot, str | None]:
+        if seconds < 0:
+            raise ValueError("Seconds must be non-negative")
+        target = int(round(seconds))
+        message = None
+        if target < 0:
+            target = 0
+            message = "Time out of range; moved to first frame"
+        elif target >= len(self.frames):
+            target = len(self.frames) - 1
+            message = "Time out of range; moved to last frame"
+        self.session.current_frame_index = target
+        return self._snapshot(), message
+
     def save_current_frame(self) -> SaveOperation:
         idx = self.session.current_frame_index
         output = self.outdir / f"frame-{idx:02d}.png"

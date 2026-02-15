@@ -43,6 +43,21 @@ class PyAVVideoDecoder:
         cache_start = getattr(self, "_cache_start", 0)
         return cache_start + len(frames)
 
+    @property
+    def has_known_frame_count(self) -> bool:
+        return bool(getattr(self, "_frame_count", 0))
+
+    @property
+    def fps(self) -> float | None:
+        return self._fps
+
+    def frame_index_for_seconds(self, seconds: float) -> int:
+        if seconds < 0:
+            raise ValueError("Seconds must be non-negative")
+        if not self._fps:
+            raise VideoDecodeError("FPS is unavailable for this video")
+        return max(0, int(round(seconds * self._fps)))
+
     def _open(self) -> None:
         if av is None:
             raise VideoDecodeError("PyAV is not available in this environment")
