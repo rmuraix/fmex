@@ -137,20 +137,10 @@ class FMEXApp(App[None]):
         self._step_by(-100)
 
     def action_next_frame(self) -> None:
-        try:
-            snap = self.session.next_frame()
-            self.preview.image = snap.image
-            self._update_frame_status(snap)
-        except FrameBoundaryError as exc:
-            self._set_status_with_frame(str(exc))
+        self._step_by(1)
 
     def action_prev_frame(self) -> None:
-        try:
-            snap = self.session.previous_frame()
-            self.preview.image = snap.image
-            self._update_frame_status(snap)
-        except FrameBoundaryError as exc:
-            self._set_status_with_frame(str(exc))
+        self._step_by(-1)
 
     def action_save_frame(self) -> None:
         result = self.session.save_current_frame()
