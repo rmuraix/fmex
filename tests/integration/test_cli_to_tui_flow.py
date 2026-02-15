@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 
+from textual.widgets import Input
+
 from fmex.app import FMEXApp
 from fmex.ui.frame_view import ControlsLegend
-from textual.widgets import Input
 
 
 def test_keyboard_navigation_and_status(fake_session) -> None:
@@ -61,7 +62,7 @@ def test_time_jump_modal(fake_session) -> None:
         app = FMEXApp(fake_session)
         async with app.run_test() as pilot:
             await pilot.pause()
-            await pilot.press("t")
+            await pilot.press("j")
             await pilot.pause()
             time_input = app.screen.query_one("#time_jump_input", Input)
             time_input.value = "2"

@@ -23,7 +23,7 @@ class TimeJumpScreen(ModalScreen[str | None]):
         self.styles.background = "black 60%"
         modal = self.query_one("#time_jump_modal", Container)
         modal.styles.width = 40
-        modal.styles.height = 3
+        modal.styles.height = 5
         modal.styles.padding = (0, 2)
         modal.styles.border = ("solid", "white")
         modal.styles.background = "black"
@@ -56,7 +56,7 @@ class FMEXApp(App[None]):
         Binding("ctrl+left", "step_back_100", "Prev-100"),
         Binding("ctrl+l", "step_forward_100", "Next+100"),
         Binding("ctrl+h", "step_back_100", "Prev-100"),
-        Binding("t", "focus_time_jump", "Jump"),
+        Binding("j", "focus_time_jump", "Jump"),
         Binding("s", "save_frame", "Save"),
         Binding("q", "quit_app", "Quit"),
     ]
