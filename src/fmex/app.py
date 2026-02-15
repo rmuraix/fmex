@@ -41,7 +41,7 @@ class FMEXApp(App[None]):
         snap = self.session.get_current_frame()
         self.preview.image = snap.image
         self._set_status(
-            f"Frame {snap.frame_index + 1}/{self.session.session.total_frames}"
+            f"Frame {snap.frame_index + 1}/{self.session.total_frames_display()}"
         )
 
     def on_resize(self, event: events.Resize) -> None:
@@ -56,7 +56,7 @@ class FMEXApp(App[None]):
             snap = self.session.next_frame()
             self.preview.image = snap.image
             self._set_status(
-                f"Frame {snap.frame_index + 1}/{self.session.session.total_frames}"
+                f"Frame {snap.frame_index + 1}/{self.session.total_frames_display()}"
             )
         except FrameBoundaryError as exc:
             self._set_status(str(exc))
@@ -66,7 +66,7 @@ class FMEXApp(App[None]):
             snap = self.session.previous_frame()
             self.preview.image = snap.image
             self._set_status(
-                f"Frame {snap.frame_index + 1}/{self.session.session.total_frames}"
+                f"Frame {snap.frame_index + 1}/{self.session.total_frames_display()}"
             )
         except FrameBoundaryError as exc:
             self._set_status(str(exc))

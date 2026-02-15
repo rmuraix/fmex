@@ -14,7 +14,11 @@ from fmex.models import (
 )
 from fmex.services.frame_cache import FrameCache
 from fmex.services.frame_saver import FrameSaveError, FrameSaver
-from fmex.services.video_decoder import PyAVVideoDecoder, VideoDecodeError
+from fmex.services.video_decoder import (
+    FrameIndexError,
+    PyAVVideoDecoder,
+    VideoDecodeError,
+)
 
 
 class FrameBoundaryError(RuntimeError):
@@ -59,10 +63,14 @@ class FrameSession:
         return self._snapshot(self.session.current_frame_index)
 
     def next_frame(self) -> FrameSnapshot:
-        if self.session.current_frame_index >= self.session.total_frames - 1:
-            raise FrameBoundaryError("Already at last frame")
-        self.session.current_frame_index += 1
-        snap = self._snapshot(self.session.current_frame_index)
+        target_index = self.session.current_frame_index + 1
+        try:
+            snap = self._snapshot(target_index)
+        except FrameIndexError as exc:
+            if self.decoder.frame_count:
+                self.session.total_frames = self.decoder.frame_count
+            raise FrameBoundaryError("Already at last frame") from exc
+        self.session.current_frame_index = target_index
         self._prefetch_neighbors()
         return snap
 
@@ -77,8 +85,12 @@ class FrameSession:
     def _prefetch_neighbors(self) -> None:
         idx = self.session.current_frame_index
         neighbors = [idx + 1, idx - 1]
+        if self.session.total_frames > 0:
+            candidates = [n for n in neighbors if 0 <= n < self.session.total_frames]
+        else:
+            candidates = [n for n in neighbors if n >= 0]
         self.cache.prefetch(
-            [n for n in neighbors if 0 <= n < self.session.total_frames],
+            candidates,
             self.decoder.get_frame,
         )
 
@@ -106,6 +118,12 @@ class FrameSession:
                 error_message=str(exc),
             )
 
+    def total_frames_display(self) -> str:
+        total = self.session.total_frames
+        return str(total) if total > 0 else "?"
+
     def close(self) -> None:
         self.session.status = SessionStatus.CLOSED
         self.cache.close()
+        if hasattr(self.decoder, "close"):
+            self.decoder.close()

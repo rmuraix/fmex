@@ -13,7 +13,7 @@ from fmex.models import (
     SessionStatus,
     VideoSession,
 )
-from fmex.services import FrameBoundaryError
+from fmex.services import FrameBoundaryError, FrameIndexError
 
 
 class FakeDecoder:
@@ -30,6 +30,8 @@ class FakeDecoder:
         return len(self._frames)
 
     def get_frame(self, frame_index: int) -> Image.Image:
+        if frame_index < 0 or frame_index >= len(self._frames):
+            raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
         return self._frames[frame_index]
 
 
@@ -92,6 +94,9 @@ class FakeSession:
 
     def close(self) -> None:
         self.session.status = SessionStatus.CLOSED
+
+    def total_frames_display(self) -> str:
+        return str(self.session.total_frames)
 
 
 @pytest.fixture
