@@ -5,7 +5,13 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fmex.models import FrameSnapshot, SaveOperation, SaveStatus, SessionStatus, VideoSession
+from fmex.models import (
+    FrameSnapshot,
+    SaveOperation,
+    SaveStatus,
+    SessionStatus,
+    VideoSession,
+)
 from fmex.services.frame_cache import FrameCache
 from fmex.services.frame_saver import FrameSaveError, FrameSaver
 from fmex.services.video_decoder import PyAVVideoDecoder, VideoDecodeError

@@ -10,7 +10,9 @@ def test_outdir_autocreate_and_save(fake_decoder_class, tmp_path: Path) -> None:
     video.write_bytes(b"fake")
     outdir = tmp_path / "nested" / "exports"
 
-    session = FrameSession(video_file=video, outdir=outdir, decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video, outdir=outdir, decoder_factory=fake_decoder_class
+    )
     result = session.save_current_frame()
 
     assert outdir.exists()

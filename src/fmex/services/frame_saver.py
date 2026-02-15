@@ -19,7 +19,9 @@ class FrameSaver:
         try:
             self.outdir.mkdir(parents=True, exist_ok=True)
         except Exception as exc:
-            raise FrameSaveError(f"Failed to create output directory '{self.outdir}': {exc}") from exc
+            raise FrameSaveError(
+                f"Failed to create output directory '{self.outdir}': {exc}"
+            ) from exc
 
         if not self.outdir.is_dir():
             raise FrameSaveError(f"Output path is not a directory: {self.outdir}")

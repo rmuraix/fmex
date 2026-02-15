@@ -11,7 +11,11 @@ def test_contract_open_get_save_close(fake_decoder_class, tmp_path: Path) -> Non
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
 
-    session = FrameSession(video_file=video, outdir=tmp_path / "exports", decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video,
+        outdir=tmp_path / "exports",
+        decoder_factory=fake_decoder_class,
+    )
 
     current = session.get_current_frame()
     assert current.frame_index == 0
@@ -28,7 +32,9 @@ def test_contract_next_prev_boundaries(fake_decoder_class, tmp_path: Path) -> No
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
 
-    session = FrameSession(video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class
+    )
     session.next_frame()
     session.next_frame()
     with pytest.raises(FrameBoundaryError):

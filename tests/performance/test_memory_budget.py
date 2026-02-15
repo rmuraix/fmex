@@ -12,7 +12,9 @@ def test_memory_budget_navigation(fake_decoder_class, tmp_path) -> None:
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
 
-    session = FrameSession(video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class
+    )
 
     tracemalloc.start()
     for _ in range(200):

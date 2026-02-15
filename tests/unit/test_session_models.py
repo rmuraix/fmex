@@ -4,7 +4,13 @@ from pathlib import Path
 
 from PIL import Image
 
-from fmex.models import FrameSnapshot, SaveOperation, SaveStatus, SessionStatus, VideoSession
+from fmex.models import (
+    FrameSnapshot,
+    SaveOperation,
+    SaveStatus,
+    SessionStatus,
+    VideoSession,
+)
 
 
 def test_video_session_fields() -> None:

@@ -7,7 +7,9 @@ import typer
 from fmex.app import FMEXApp
 from fmex.services import FrameSession, VideoDecodeError
 
-cli = typer.Typer(add_completion=False, invoke_without_command=True, no_args_is_help=False)
+cli = typer.Typer(
+    add_completion=False, invoke_without_command=True, no_args_is_help=False
+)
 
 
 def _validate_video_path(video_file: Path) -> None:
@@ -20,7 +22,9 @@ def _validate_video_path(video_file: Path) -> None:
 @cli.callback()
 def run(
     video_file: Path = typer.Argument(..., exists=False),
-    outdir: Path | None = typer.Option(None, "--outdir", help="Directory for PNG exports"),
+    outdir: Path | None = typer.Option(
+        None, "--outdir", help="Directory for PNG exports"
+    ),
 ) -> None:
     """Open a video in the terminal and export selected frames."""
     _validate_video_path(video_file)

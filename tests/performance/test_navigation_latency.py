@@ -12,7 +12,9 @@ def test_navigation_latency_p95(fake_decoder_class, tmp_path) -> None:
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
 
-    session = FrameSession(video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class
+    )
     timings = []
     for _ in range(30):
         start = time.perf_counter()

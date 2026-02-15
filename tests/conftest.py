@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from fmex.models import FrameSnapshot, SaveOperation, SaveStatus, SessionStatus, VideoSession
+from fmex.models import (
+    FrameSnapshot,
+    SaveOperation,
+    SaveStatus,
+    SessionStatus,
+    VideoSession,
+)
 from fmex.services import FrameBoundaryError
 
 

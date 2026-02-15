@@ -19,7 +19,9 @@ def test_decoder_bounds() -> None:
         decoder.get_frame(2)
 
 
-def test_decoder_missing_file_raises(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_decoder_missing_file_raises(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     import fmex.services.video_decoder as module
 
     monkeypatch.setattr(module, "av", object())
