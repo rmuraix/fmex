@@ -33,7 +33,7 @@ def test_control_legend_visible(fake_session) -> None:
         async with app.run_test() as pilot:
             await pilot.pause()
             legend = app.query_one(ControlsLegend)
-            assert "save PNG" in legend.text
+            assert "Save PNG" in legend.text
 
     asyncio.run(runner())
 

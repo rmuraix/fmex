@@ -12,4 +12,4 @@ def test_keymap_translation() -> None:
 def test_controls_text_contains_hints() -> None:
     text = controls_text()
     assert "Left" in text
-    assert "save" in text
+    assert "Save PNG" in text

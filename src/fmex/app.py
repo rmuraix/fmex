@@ -20,13 +20,13 @@ class TimeJumpScreen(ModalScreen[str | None]):
 
     def on_mount(self) -> None:
         self.styles.align = ("center", "middle")
-        self.styles.background = "black 60%"
+        self.styles.background = "#020617 70%"
         modal = self.query_one("#time_jump_modal", Container)
         modal.styles.width = 40
         modal.styles.height = 5
         modal.styles.padding = (0, 2)
-        modal.styles.border = ("solid", "white")
-        modal.styles.background = "black"
+        modal.styles.border = ("round", "#22d3ee")
+        modal.styles.background = "#020617"
         input_widget = self.query_one("#time_jump_input", Input)
         input_widget.focus()
 
@@ -43,6 +43,40 @@ class TimeJumpScreen(ModalScreen[str | None]):
 
 
 class FMEXApp(App[None]):
+    CSS = """
+    Screen {
+        background: #020617;
+        color: #dbeafe;
+    }
+
+    #preview {
+        border: round #0ea5e9;
+        background: #000814;
+    }
+
+    ControlsLegend {
+        background: #0f172a;
+        color: #7dd3fc;
+        padding: 0 1;
+    }
+
+    #status {
+        background: #111827;
+        color: #e2e8f0;
+        padding: 0 1;
+    }
+
+    #time_jump_modal {
+        border: round #22d3ee;
+        background: #020617;
+    }
+
+    #time_jump_input {
+        background: #020617;
+        color: #e2e8f0;
+    }
+    """
+
     BINDINGS = [
         Binding("right", "next_frame", "Next"),
         Binding("left", "prev_frame", "Prev"),
