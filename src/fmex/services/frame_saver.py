@@ -32,9 +32,17 @@ class FrameSaver:
         suffix = uuid4().hex[:8]
         return f"frame-{frame_index:06d}-{stamp}-{suffix}.png"
 
-    def save_png(self, image: Image.Image, frame_index: int) -> Path:
+    def build_target(self, frame_index: int) -> Path:
+        return self.outdir / self.build_filename(frame_index)
+
+    def save_png(
+        self,
+        image: Image.Image,
+        frame_index: int,
+        target: Path | None = None,
+    ) -> Path:
         outdir = self.ensure_outdir()
-        target = outdir / self.build_filename(frame_index)
+        target = target or (outdir / self.build_filename(frame_index))
 
         try:
             image.save(target, format="PNG")

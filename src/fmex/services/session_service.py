@@ -96,9 +96,15 @@ class FrameSession:
 
     def save_current_frame(self) -> SaveOperation:
         now = datetime.now()
+        attempted_index = self.session.current_frame_index
+        attempted_output = self.saver.build_target(attempted_index)
         try:
             snapshot = self.get_current_frame()
-            output = self.saver.save_png(snapshot.image, snapshot.frame_index)
+            output = self.saver.save_png(
+                snapshot.image,
+                snapshot.frame_index,
+                target=attempted_output,
+            )
             return SaveOperation(
                 save_id=uuid4().hex,
                 session_id=self.session.session_id,
@@ -111,8 +117,8 @@ class FrameSession:
             return SaveOperation(
                 save_id=uuid4().hex,
                 session_id=self.session.session_id,
-                frame_index=self.session.current_frame_index,
-                output_path=self.outdir / "",
+                frame_index=attempted_index,
+                output_path=attempted_output,
                 status=SaveStatus.FAILURE,
                 created_at=now,
                 error_message=str(exc),
