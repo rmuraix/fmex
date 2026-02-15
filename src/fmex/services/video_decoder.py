@@ -31,6 +31,7 @@ class PyAVVideoDecoder:
         self._decode_iter = None
         self._decoded_complete = False
         self._frame_count = 0
+        self._fps: float | None = None
         self._open()
 
     @property
@@ -55,6 +56,8 @@ class PyAVVideoDecoder:
             )
             if self._stream is None:
                 raise VideoDecodeError("No video stream found")
+            if self._stream.average_rate:
+                self._fps = float(self._stream.average_rate)
             self._frame_count = self._infer_frame_count()
             self._decode_iter = self._container.decode(self._stream)
         except VideoDecodeError:
@@ -77,7 +80,8 @@ class PyAVVideoDecoder:
         if cache_start <= frame_index < cache_end:
             return frames[frame_index - cache_start]
         if frame_index < cache_start:
-            self._reset_decode()
+            if not self._seek_to_frame(frame_index):
+                self._reset_decode()
             frames = self._frames
             decode_iter = self._decode_iter
             decoded_complete = self._decoded_complete
@@ -88,6 +92,16 @@ class PyAVVideoDecoder:
         if decode_iter is None:
             raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
 
+        if frame_index >= cache_end + max_cache:
+            if self._seek_to_frame(frame_index):
+                frames = self._frames
+                decode_iter = self._decode_iter
+                decoded_complete = self._decoded_complete
+                cache_start = self._cache_start
+                cache_end = cache_start + len(frames)
+                if cache_start <= frame_index < cache_end:
+                    return frames[frame_index - cache_start]
+
         while (cache_start + len(frames)) <= frame_index and not decoded_complete:
             try:
                 frame = next(decode_iter)
@@ -97,7 +111,13 @@ class PyAVVideoDecoder:
                 break
             except Exception as exc:  # pragma: no cover - backend/media dependent
                 raise VideoDecodeError(f"Unable to decode frame: {exc}") from exc
-            frames.append(frame.to_image().convert("RGB"))
+            image = frame.to_image().convert("RGB")
+            pts = getattr(frame, "pts", None)
+            if not frames and pts is not None and self._fps:
+                time_base = getattr(frame, "time_base", None) or self._stream.time_base
+                cache_start = self._frame_index_from_pts(pts, time_base)
+                self._cache_start = cache_start
+            frames.append(image)
             if len(frames) > max_cache:
                 frames.pop(0)
                 cache_start += 1
@@ -113,6 +133,35 @@ class PyAVVideoDecoder:
             raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
 
         raise VideoDecodeError(f"Unable to decode frame: {frame_index}")
+
+    def _frame_index_from_pts(self, pts: int, time_base) -> int:
+        if not self._fps or not time_base:
+            return self._cache_start
+        seconds = float(pts * time_base)
+        return max(0, int(round(seconds * self._fps)))
+
+    def _seek_to_frame(self, frame_index: int) -> bool:
+        if self._container is None or self._stream is None or not self._fps:
+            return False
+        time_base = self._stream.time_base
+        if not time_base:
+            return False
+        seconds = frame_index / self._fps
+        offset = int(seconds / float(time_base))
+        try:
+            self._container.seek(
+                offset,
+                stream=self._stream,
+                backward=True,
+                any_frame=False,
+            )
+        except Exception:
+            return False
+        self._frames = []
+        self._cache_start = 0
+        self._decoded_complete = False
+        self._decode_iter = self._container.decode(self._stream)
+        return True
 
     def _infer_frame_count(self) -> int:
         if self._stream is None or self._container is None:
