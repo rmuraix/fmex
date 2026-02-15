@@ -74,7 +74,9 @@ class FrameSession:
         if target_index < 0:
             target_index = 0
             message = low_message
-        elif self.session.total_frames > 0 and target_index >= self.session.total_frames:
+        elif (
+            self.session.total_frames > 0 and target_index >= self.session.total_frames
+        ):
             target_index = self.session.total_frames - 1
             message = high_message
         try:
