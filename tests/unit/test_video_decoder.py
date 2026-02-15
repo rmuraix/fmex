@@ -68,7 +68,10 @@ def test_decoder_resets_when_requesting_frame_before_cache_start() -> None:
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder.video_path = Path("dummy.mp4")
     decoder._max_cache = 2
-    decoder._frames = [Image.new("RGB", (2, 2), "green"), Image.new("RGB", (2, 2), "blue")]
+    decoder._frames = [
+        Image.new("RGB", (2, 2), "green"),
+        Image.new("RGB", (2, 2), "blue"),
+    ]
     decoder._cache_start = 1
     decoder._container = None
     decoder._stream = None

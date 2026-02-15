@@ -26,7 +26,9 @@ def test_save_current_frame_passes_attempted_target_to_saver(
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
     outdir = tmp_path / "exports"
-    session = FrameSession(video_file=video, outdir=outdir, decoder_factory=fake_decoder_class)
+    session = FrameSession(
+        video_file=video, outdir=outdir, decoder_factory=fake_decoder_class
+    )
     attempted = outdir / "attempted.png"
 
     monkeypatch.setattr(session.saver, "build_target", lambda _: attempted)
@@ -47,7 +49,9 @@ def test_save_current_frame_failure_uses_attempted_target(tmp_path: Path) -> Non
     video = tmp_path / "video.mp4"
     video.write_bytes(b"fake")
     outdir = tmp_path / "exports"
-    session = FrameSession(video_file=video, outdir=outdir, decoder_factory=_FailingDecoder)
+    session = FrameSession(
+        video_file=video, outdir=outdir, decoder_factory=_FailingDecoder
+    )
     session.session.current_frame_index = 2
     attempted = outdir / "failed-target.png"
     session.saver.build_target = lambda _: attempted
