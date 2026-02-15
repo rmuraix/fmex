@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-02-15
 
 ## Active Technologies
+- Python 3.11 + Typer (CLI), Textual + textual-image (TUI), Pillow, PyAV, diskcache (002-frame-nav-jumps)
+- Local files (video input/output) and diskcache for frame caching (002-frame-nav-jumps)
 
 - Python 3.11+ + Typer (CLI), Textual + textual-image (TUI and preview), Pillow (PNG writing), PyAV (video decode/index), diskcache (frame cache) (001-video-frame-selector)
 
@@ -22,6 +24,8 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 002-frame-nav-jumps: Added Python 3.11 + Typer (CLI), Textual + textual-image (TUI), Pillow, PyAV, diskcache
+- 002-frame-nav-jumps: Added Local files (video input/output) and diskcache for frame caching
 
 - 001-video-frame-selector: Added Python 3.11+ + Typer (CLI), Textual + textual-image (TUI and preview), Pillow (PNG writing), PyAV (video decode/index), diskcache (frame cache)
 
