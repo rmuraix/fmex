@@ -1,6 +1,6 @@
 [project]
 name = "fmex"
-version = "0.1.0"
+version = "0.1.1"
 description = "Terminal-based frame extractor for video files."
 readme = "README.md"
 license-files = ["LICENSE"]
