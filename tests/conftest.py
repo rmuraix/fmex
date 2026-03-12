@@ -36,8 +36,8 @@ class FakeDecoder:
 
 
 class FakeSession:
-    def __init__(self, outdir: Path) -> None:
-        self.frames = [
+    def __init__(self, outdir: Path, frames: list[Image.Image] | None = None) -> None:
+        self.frames = frames or [
             Image.new("RGB", (8, 8), "red"),
             Image.new("RGB", (8, 8), "green"),
             Image.new("RGB", (8, 8), "blue"),
@@ -133,3 +133,23 @@ def fake_decoder_class() -> type[FakeDecoder]:
 @pytest.fixture
 def fake_session(tmp_path: Path) -> FakeSession:
     return FakeSession(tmp_path)
+
+
+@pytest.fixture
+def wide_fake_session(tmp_path: Path) -> FakeSession:
+    frames = [
+        Image.new("RGB", (160, 80), "red"),
+        Image.new("RGB", (160, 80), "green"),
+        Image.new("RGB", (160, 80), "blue"),
+    ]
+    return FakeSession(tmp_path, frames=frames)
+
+
+@pytest.fixture
+def tall_fake_session(tmp_path: Path) -> FakeSession:
+    frames = [
+        Image.new("RGB", (80, 160), "red"),
+        Image.new("RGB", (80, 160), "green"),
+        Image.new("RGB", (80, 160), "blue"),
+    ]
+    return FakeSession(tmp_path, frames=frames)

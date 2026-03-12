@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
+from textual.containers import Container
 from textual.widgets import Input
+from textual_image._terminal import get_cell_size
 
 from fmex.app import FMEXApp
 from fmex.ui.frame_view import ControlsLegend
@@ -70,5 +72,49 @@ def test_time_jump_modal(fake_session) -> None:
             await pilot.pause()
             status = app.query_one("#status")
             assert "Frame 3/3" in status.text
+
+    asyncio.run(runner())
+
+
+def test_preview_scales_wide_image_and_keeps_footer_visible(wide_fake_session) -> None:
+    async def runner() -> None:
+        app = FMEXApp(wide_fake_session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+
+            preview_pane = app.query_one("#preview_pane", Container)
+            legend = app.query_one(ControlsLegend)
+            status = app.query_one("#status")
+            cell_size = get_cell_size()
+            rendered_pixel_width = app.preview.size.width * cell_size.width
+            rendered_pixel_height = app.preview.size.height * cell_size.height
+
+            assert app.preview.styles.width.is_auto
+            assert app.preview.styles.height.is_auto
+            assert rendered_pixel_width > rendered_pixel_height
+            assert legend.size.height > 0
+            assert status.size.height > 0
+            assert app.preview.size.width <= preview_pane.size.width
+            assert app.preview.size.height <= preview_pane.size.height
+
+    asyncio.run(runner())
+
+
+def test_preview_scales_tall_image_within_available_space(tall_fake_session) -> None:
+    async def runner() -> None:
+        app = FMEXApp(tall_fake_session)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+
+            preview_pane = app.query_one("#preview_pane", Container)
+            cell_size = get_cell_size()
+            rendered_pixel_width = app.preview.size.width * cell_size.width
+            rendered_pixel_height = app.preview.size.height * cell_size.height
+
+            assert app.preview.styles.width.is_auto
+            assert app.preview.styles.height.is_auto
+            assert rendered_pixel_height > rendered_pixel_width
+            assert app.preview.size.width <= preview_pane.size.width
+            assert app.preview.size.height <= preview_pane.size.height
 
     asyncio.run(runner())
