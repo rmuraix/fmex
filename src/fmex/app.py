@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PIL import Image
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -49,9 +50,29 @@ class FMEXApp(App[None]):
         color: #dbeafe;
     }
 
-    #preview {
+    #app_root {
+        height: 100%;
+    }
+
+    #preview_pane {
+        height: 1fr;
+        width: 100%;
+        align: center middle;
+    }
+
+    #preview_frame {
         border: round #0ea5e9;
         background: #000814;
+        align: center middle;
+        width: 100%;
+        height: 100%;
+    }
+
+    #preview {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
     }
 
     ControlsLegend {
@@ -102,23 +123,24 @@ class FMEXApp(App[None]):
         self.status = StatusLine("Initializing", id="status")
 
     def compose(self) -> ComposeResult:
-        yield Vertical(self.preview, *build_footer_widgets(), self.status)
+        with Vertical(id="app_root"):
+            with Container(id="preview_pane"):
+                with Container(id="preview_frame"):
+                    yield self.preview
+            yield from build_footer_widgets()
+            yield self.status
 
-    def _fit_preview_to_terminal(self) -> None:
-        width = max(1, self.size.width)
-        height = max(4, self.size.height - 2)
-        self.preview.styles.width = width
-        self.preview.styles.height = height
+    def _set_preview_image(self, image: Image.Image) -> None:
+        self.preview.image = image
 
     def on_mount(self) -> None:
-        self._fit_preview_to_terminal()
         snap = self.session.get_current_frame()
-        self.preview.image = snap.image
+        self._set_preview_image(snap.image)
         self._update_frame_status(snap)
 
     def on_resize(self, event: events.Resize) -> None:
         del event
-        self._fit_preview_to_terminal()
+        self.preview.refresh(layout=True)
 
     def _set_status(self, text: str) -> None:
         self.status.set_status(text)
@@ -145,7 +167,7 @@ class FMEXApp(App[None]):
         try:
             seconds = float(value)
             snap, message = self.session.jump_to_time(seconds)
-            self.preview.image = snap.image
+            self._set_preview_image(snap.image)
             self._update_frame_status(snap, message)
         except (ValueError, FrameBoundaryError, VideoDecodeError) as exc:
             self._set_status_with_frame(str(exc))
@@ -153,7 +175,7 @@ class FMEXApp(App[None]):
     def _step_by(self, delta: int) -> None:
         try:
             snap, message = self.session.step_frames(delta)
-            self.preview.image = snap.image
+            self._set_preview_image(snap.image)
             self._update_frame_status(snap, message)
         except FrameBoundaryError as exc:
             self._set_status_with_frame(str(exc))
