@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+from collections import deque
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -47,7 +49,7 @@ def test_decoder_cache_window_advances_and_updates_frame_count() -> None:
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder.video_path = Path("dummy.mp4")
     decoder._max_cache = 2
-    decoder._frames = []
+    decoder._frames = deque(maxlen=2)
     decoder._cache_start = 0
     decoder._container = None
     decoder._stream = None
@@ -199,6 +201,92 @@ def test_get_frame_seeks_forward_when_beyond_max_cache() -> None:
     image = decoder.get_frame(50)
 
     assert image is expected
+
+
+def test_get_frame_eviction_stays_bounded_and_fast_for_large_cache() -> None:
+    """Regression guard for O(n) list.pop(0) eviction: with a large max_cache,
+    decoding far more frames than fit in the cache must stay bounded in size
+    and complete quickly (deque eviction is O(1), not O(n))."""
+    max_cache = 2000
+    total_decoded = 20000
+
+    decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
+    decoder.video_path = Path("dummy.mp4")
+    decoder._max_cache = max_cache
+    decoder._frames = deque(maxlen=max_cache)
+    decoder._cache_start = 0
+    decoder._container = None
+    decoder._stream = None
+    decoder._decoded_complete = False
+    decoder._frame_count = 0
+
+    tiny_image = Image.new("RGB", (2, 2), "red")
+
+    def _frame_iter():
+        for _ in range(total_decoded):
+            yield _FakeAVFrame(tiny_image)
+
+    decoder._decode_iter = _frame_iter()
+
+    start = time.perf_counter()
+    decoder.get_frame(total_decoded - 1)
+    elapsed = time.perf_counter() - start
+
+    assert len(decoder._frames) == max_cache
+    assert decoder._cache_start == total_decoded - max_cache
+    assert elapsed < 2.0
+
+    with pytest.raises(FrameIndexError):
+        decoder.get_frame(total_decoded)
+
+
+def test_get_frame_uses_seek_threshold_independently_of_max_cache() -> None:
+    decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
+    decoder._frames = deque([Image.new("RGB", (2, 2), "red")], maxlen=4)
+    decoder._cache_start = 0
+    decoder._max_cache = 4
+    decoder._seek_threshold = 10
+    decoder._frame_count = 100
+    decoder._decoded_complete = False
+    decoder._decode_iter = iter(
+        [_FakeAVFrame(Image.new("RGB", (2, 2), "green")) for _ in range(20)]
+    )
+    seek_calls: list[int] = []
+
+    def _seek_to_frame(frame_index: int) -> bool:
+        seek_calls.append(frame_index)
+        return False
+
+    decoder._seek_to_frame = _seek_to_frame
+
+    decoder.get_frame(8)
+
+    assert seek_calls == []
+
+
+def test_get_frame_seeks_when_jump_exceeds_seek_threshold() -> None:
+    decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
+    decoder._frames = deque([Image.new("RGB", (2, 2), "red")], maxlen=4)
+    decoder._cache_start = 0
+    decoder._max_cache = 4
+    decoder._seek_threshold = 10
+    decoder._frame_count = 100
+    decoder._decoded_complete = False
+    decoder._decode_iter = iter([])
+    seek_calls: list[int] = []
+
+    def _seek_to_frame(frame_index: int) -> bool:
+        seek_calls.append(frame_index)
+        decoder._frames = deque([Image.new("RGB", (2, 2), "blue")], maxlen=4)
+        decoder._cache_start = frame_index
+        return True
+
+    decoder._seek_to_frame = _seek_to_frame
+
+    image = decoder.get_frame(15)
+
+    assert seek_calls == [15]
+    assert image.getpixel((0, 0)) == (0, 0, 255)
 
 
 def test_get_frame_decodes_with_pts_calculation() -> None:
@@ -357,6 +445,7 @@ def test_seek_to_frame_succeeds_and_resets_cache() -> None:
     decoder._stream = Mock()
     decoder._stream.time_base = 1 / 30.0
     decoder._fps = 30.0
+    decoder._max_cache = 10
     decoder._frames = [Image.new("RGB", (2, 2), "red")]
     decoder._cache_start = 10
     decoder._decoded_complete = True
@@ -365,7 +454,7 @@ def test_seek_to_frame_succeeds_and_resets_cache() -> None:
     result = decoder._seek_to_frame(20)
 
     assert result is True
-    assert decoder._frames == []
+    assert len(decoder._frames) == 0
     assert decoder._cache_start == 0
     assert decoder._decoded_complete is False
     decoder._container.seek.assert_called_once()
@@ -449,6 +538,7 @@ def test_reset_decode_closes_container_and_reopens() -> None:
     decoder.video_path = Path("dummy.mp4")
     container_mock = Mock()
     decoder._container = container_mock
+    decoder._max_cache = 10
     decoder._frames = [Image.new("RGB", (2, 2), "red")]
     decoder._cache_start = 10
     decoder._decoded_complete = True
@@ -590,6 +680,7 @@ def test_reset_decode_when_container_is_none() -> None:
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
     decoder.video_path = Path("dummy.mp4")
     decoder._container = None
+    decoder._max_cache = 10
     decoder._frames = [Image.new("RGB", (2, 2), "red")]
     decoder._cache_start = 10
     decoder._decoded_complete = True

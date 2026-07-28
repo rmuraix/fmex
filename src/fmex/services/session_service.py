@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
+
+from PIL import Image
 
 from fmex.models import (
     FrameSnapshot,
@@ -40,15 +43,25 @@ class FrameSession:
             outdir=self.outdir,
             status=SessionStatus.INITIALIZING,
         )
+        # FrameCache is the intentional "serving/random-access" LRU layer;
+        # PyAVVideoDecoder's own max_cache is a separate, smaller knob for
+        # sequential decode/seek behavior. Keep them independently tuned.
         self.cache = FrameCache(max_items=64)
         self.decoder = self.decoder_factory(self.video_file)
         self.saver = FrameSaver(self.outdir)
         self.session.total_frames = self.decoder.frame_count
         self.session.status = SessionStatus.READY
+        # PyAV decode calls on the same container are not safe to run
+        # concurrently, so serialize main-thread and prefetch-worker access.
+        self._decoder_lock = threading.Lock()
+
+    def _locked_get_frame(self, frame_index: int) -> Image.Image:
+        with self._decoder_lock:
+            return self.decoder.get_frame(frame_index)
 
     def _snapshot(self, frame_index: int) -> FrameSnapshot:
         cached = self.cache.get(frame_index)
-        image = cached if cached is not None else self.decoder.get_frame(frame_index)
+        image = cached if cached is not None else self._locked_get_frame(frame_index)
         self.cache.put(frame_index, image)
         return FrameSnapshot(
             session_id=self.session.session_id,
@@ -92,7 +105,6 @@ class FrameSession:
             else:
                 raise FrameBoundaryError(boundary_error) from exc
         self.session.current_frame_index = target_index
-        self._prefetch_neighbors()
         return snap, message
 
     def step_frames(self, delta: int) -> tuple[FrameSnapshot, str | None]:
@@ -126,7 +138,6 @@ class FrameSession:
                 self.session.total_frames = self.decoder.frame_count
             raise FrameBoundaryError("Already at last frame") from exc
         self.session.current_frame_index = target_index
-        self._prefetch_neighbors()
         return snap
 
     def previous_frame(self) -> FrameSnapshot:
@@ -134,10 +145,16 @@ class FrameSession:
             raise FrameBoundaryError("Already at first frame")
         self.session.current_frame_index -= 1
         snap = self._snapshot(self.session.current_frame_index)
-        self._prefetch_neighbors()
         return snap
 
-    def _prefetch_neighbors(self) -> None:
+    def prefetch_neighbors(self) -> None:
+        """Speculatively decode the frames adjacent to the current one.
+
+        Not called automatically by navigation methods, so it never blocks
+        the critical path of displaying the current frame. Callers (e.g. the
+        UI layer) are expected to invoke this off the main thread after the
+        current frame has already been shown.
+        """
         idx = self.session.current_frame_index
         neighbors = [idx + 1, idx - 1]
         if self.session.total_frames > 0:
@@ -146,7 +163,7 @@ class FrameSession:
             candidates = [n for n in neighbors if n >= 0]
         self.cache.prefetch(
             candidates,
-            self.decoder.get_frame,
+            self._locked_get_frame,
         )
 
     def save_current_frame(self) -> SaveOperation:
@@ -186,5 +203,6 @@ class FrameSession:
     def close(self) -> None:
         self.session.status = SessionStatus.CLOSED
         self.cache.close()
-        if hasattr(self.decoder, "close"):
-            self.decoder.close()
+        with self._decoder_lock:
+            if hasattr(self.decoder, "close"):
+                self.decoder.close()

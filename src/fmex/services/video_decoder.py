@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from pathlib import Path
 
 from PIL import Image
@@ -21,10 +22,16 @@ class FrameIndexError(VideoDecodeError):
 class PyAVVideoDecoder:
     """Lazy decoder optimized for fast startup and on-demand frame access."""
 
-    def __init__(self, video_path: Path, max_cache: int = 256) -> None:
+    def __init__(
+        self,
+        video_path: Path,
+        max_cache: int = 32,
+        seek_threshold: int = 128,
+    ) -> None:
         self.video_path = video_path
         self._max_cache = max_cache
-        self._frames: list[Image.Image] = []
+        self._seek_threshold = seek_threshold
+        self._frames: deque[Image.Image] = deque(maxlen=max(1, int(max_cache)))
         self._cache_start = 0
         self._container = None
         self._stream = None
@@ -81,12 +88,13 @@ class PyAVVideoDecoder:
             raise VideoDecodeError(f"Unable to decode video: {exc}") from exc
 
     def get_frame(self, frame_index: int) -> Image.Image:
-        frames = getattr(self, "_frames", [])
+        frames: deque[Image.Image] = getattr(self, "_frames", deque())
         decode_iter = getattr(self, "_decode_iter", None)
         decoded_complete = getattr(self, "_decoded_complete", False)
         frame_count = getattr(self, "_frame_count", 0)
         cache_start = getattr(self, "_cache_start", 0)
         max_cache = max(1, int(getattr(self, "_max_cache", 1)))
+        seek_threshold = max(1, int(getattr(self, "_seek_threshold", max_cache)))
         if frame_index < 0:
             raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
         if frame_count and frame_index >= frame_count:
@@ -107,7 +115,7 @@ class PyAVVideoDecoder:
         if decode_iter is None:
             raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
 
-        if frame_index >= cache_end + max_cache:
+        if frame_index >= cache_end + seek_threshold:
             if self._seek_to_frame(frame_index):
                 frames = self._frames
                 decode_iter = self._decode_iter
@@ -132,9 +140,9 @@ class PyAVVideoDecoder:
                 time_base = getattr(frame, "time_base", None) or self._stream.time_base
                 cache_start = self._frame_index_from_pts(pts, time_base)
                 self._cache_start = cache_start
+            was_full = len(frames) >= max_cache
             frames.append(image)
-            if len(frames) > max_cache:
-                frames.pop(0)
+            if was_full:
                 cache_start += 1
                 self._cache_start = cache_start
             self._frames = frames
@@ -172,7 +180,7 @@ class PyAVVideoDecoder:
             )
         except Exception:
             return False
-        self._frames = []
+        self._frames = deque(maxlen=max(1, int(self._max_cache)))
         self._cache_start = 0
         self._decoded_complete = False
         self._decode_iter = self._container.decode(self._stream)
@@ -198,7 +206,7 @@ class PyAVVideoDecoder:
     def _reset_decode(self) -> None:
         if self._container is not None:
             self._container.close()
-        self._frames = []
+        self._frames = deque(maxlen=max(1, int(self._max_cache)))
         self._cache_start = 0
         self._decoded_complete = False
         self._decode_iter = None

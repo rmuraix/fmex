@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
+from PIL import Image
 
 from fmex.models import SaveStatus
 from fmex.services import (
@@ -23,6 +25,22 @@ class _FailingDecoder:
 
     def get_frame(self, frame_index: int):  # noqa: ANN201
         raise VideoDecodeError(f"boom at frame {frame_index}")
+
+
+class _ClosableDecoder:
+    def __init__(self, video_path: Path) -> None:
+        self.video_path = video_path
+        self.closed = False
+
+    @property
+    def frame_count(self) -> int:
+        return 3
+
+    def get_frame(self, frame_index: int):  # noqa: ANN201
+        return Image.new("RGB", (2, 2), "red")
+
+    def close(self) -> None:
+        self.closed = True
 
 
 class _UnknownCountDecoder:
@@ -142,3 +160,36 @@ def test_jump_to_time_out_of_range_with_unknown_total_frames(tmp_path: Path) -> 
 
     with pytest.raises(FrameBoundaryError):
         session.jump_to_time(10)
+
+
+def test_navigation_methods_do_not_auto_prefetch(
+    fake_decoder_class, tmp_path: Path
+) -> None:
+    """Prefetching must be opt-in (triggered by the caller, e.g. a background
+    worker) so navigation's critical path never blocks on speculative decode
+    of neighboring frames."""
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"fake")
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class
+    )
+    session.prefetch_neighbors = Mock()
+
+    session.step_frames(1)
+    session.next_frame()
+    session.previous_frame()
+
+    session.prefetch_neighbors.assert_not_called()
+
+
+def test_close_closes_decoder_when_supported(tmp_path: Path) -> None:
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"fake")
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=_ClosableDecoder
+    )
+    session.get_current_frame()
+
+    session.close()
+
+    assert session.decoder.closed is True

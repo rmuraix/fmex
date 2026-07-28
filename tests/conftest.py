@@ -118,6 +118,9 @@ class FakeSession:
             created_at=datetime.now(),
         )
 
+    def prefetch_neighbors(self) -> None:
+        pass
+
     def close(self) -> None:
         self.session.status = SessionStatus.CLOSED
 
