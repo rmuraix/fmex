@@ -27,10 +27,6 @@ class _SlowDecoder:
         return self._total
 
     def get_frame(self, frame_index: int) -> Image.Image:
-        if frame_index < 0 or frame_index >= self._total:
-            from fmex.services.video_decoder import FrameIndexError
-
-            raise FrameIndexError(f"Frame index out of bounds: {frame_index}")
         time.sleep(DECODE_DELAY_SECONDS)
         return Image.new("RGB", (4, 4), (frame_index % 256, 0, 0))
 

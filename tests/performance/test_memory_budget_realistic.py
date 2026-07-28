@@ -30,15 +30,15 @@ def test_memory_budget_navigation_realistic_1080p(tmp_path) -> None:
 
     tracemalloc.start()
     for i in range(300):
-        try:
-            if i % 25 == 0:
-                session.step_frames(100)
-            elif i % 5 == 0:
-                session.step_frames(10)
-            else:
-                session.next_frame()
-        except Exception:
-            session.previous_frame()
+        # Mixes the app's actual navigation deltas (1/10/100); stays well
+        # within the decoder's 3000-frame range, so no boundary handling
+        # is needed here.
+        if i % 25 == 0:
+            session.step_frames(100)
+        elif i % 5 == 0:
+            session.step_frames(10)
+        else:
+            session.next_frame()
 
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
@@ -49,6 +49,18 @@ def test_memory_budget_navigation_realistic_1080p(tmp_path) -> None:
     # a full 1080p frame, with a 1.5x safety margin for transient copies.
     budget = int((32 + 64) * FRAME_BYTES * 1.5)
     assert peak <= budget
+
+    session.close()
+
+
+def test_realistic_decoder_reports_known_frame_count_and_closes(tmp_path) -> None:
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"fake")
+
+    decoder = RealisticSizePyAVDecoder(video)
+
+    assert decoder.has_known_frame_count is True
+    decoder.close()
 
 
 @pytest.mark.performance
@@ -67,10 +79,7 @@ def test_decoder_cache_default_uses_far_less_memory_than_old_default(
         )
         tracemalloc.start()
         for _ in range(300):
-            try:
-                session.next_frame()
-            except Exception:
-                session.previous_frame()
+            session.next_frame()
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
         return peak

@@ -236,6 +236,9 @@ def test_get_frame_eviction_stays_bounded_and_fast_for_large_cache() -> None:
     assert decoder._cache_start == total_decoded - max_cache
     assert elapsed < 2.0
 
+    with pytest.raises(FrameIndexError):
+        decoder.get_frame(total_decoded)
+
 
 def test_get_frame_uses_seek_threshold_independently_of_max_cache() -> None:
     decoder = PyAVVideoDecoder.__new__(PyAVVideoDecoder)
