@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -142,3 +143,23 @@ def test_jump_to_time_out_of_range_with_unknown_total_frames(tmp_path: Path) -> 
 
     with pytest.raises(FrameBoundaryError):
         session.jump_to_time(10)
+
+
+def test_navigation_methods_do_not_auto_prefetch(
+    fake_decoder_class, tmp_path: Path
+) -> None:
+    """Prefetching must be opt-in (triggered by the caller, e.g. a background
+    worker) so navigation's critical path never blocks on speculative decode
+    of neighboring frames."""
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"fake")
+    session = FrameSession(
+        video_file=video, outdir=tmp_path, decoder_factory=fake_decoder_class
+    )
+    session.prefetch_neighbors = Mock()
+
+    session.step_frames(1)
+    session.next_frame()
+    session.previous_frame()
+
+    session.prefetch_neighbors.assert_not_called()

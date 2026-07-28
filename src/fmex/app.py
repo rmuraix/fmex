@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PIL import Image
-from textual import events
+from textual import events, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Vertical
@@ -137,6 +137,7 @@ class FMEXApp(App[None]):
         snap = self.session.get_current_frame()
         self._set_preview_image(snap.image)
         self._update_frame_status(snap)
+        self._trigger_prefetch()
 
     def on_resize(self, event: events.Resize) -> None:
         del event
@@ -169,16 +170,26 @@ class FMEXApp(App[None]):
             snap, message = self.session.jump_to_time(seconds)
             self._set_preview_image(snap.image)
             self._update_frame_status(snap, message)
+            self._trigger_prefetch()
         except (ValueError, FrameBoundaryError, VideoDecodeError) as exc:
             self._set_status_with_frame(str(exc))
 
     def _step_by(self, delta: int) -> None:
         try:
             snap, message = self.session.step_frames(delta)
-            self._set_preview_image(snap.image)
-            self._update_frame_status(snap, message)
         except FrameBoundaryError as exc:
             self._set_status_with_frame(str(exc))
+            return
+        self._set_preview_image(snap.image)
+        self._update_frame_status(snap, message)
+        self._trigger_prefetch()
+
+    @work(thread=True, exclusive=True, group="prefetch")
+    def _prefetch_worker(self) -> None:
+        self.session.prefetch_neighbors()
+
+    def _trigger_prefetch(self) -> None:
+        self._prefetch_worker()
 
     def action_step_forward_10(self) -> None:
         self._step_by(10)
@@ -206,5 +217,6 @@ class FMEXApp(App[None]):
             self._set_status_with_frame(result.error_message or "Failed to save frame")
 
     def action_quit_app(self) -> None:
+        self.workers.cancel_group(self, "prefetch")
         self.session.close()
         self.exit()
